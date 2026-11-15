@@ -91,6 +91,68 @@ rotation.
 
 ------------------------------------------------------------------------
 
+## Distribution
+
+MockupForge uses one React/Vite codebase for its browser version and Tauri 2 desktop applications.
+
+### Browser version
+
+Build the static web application:
+
+```bash
+npm install
+npm run build
+```
+
+The production files are written to `dist/`. Deploy that folder to any static web host. A GitHub Actions workflow is included at `.github/workflows/web-deploy.yml`; enable **GitHub Pages → Build and deployment → GitHub Actions** in the repository settings to publish the web version from the `main` branch.
+
+### Desktop applications
+
+Prerequisites:
+
+- Node.js 22 or later and npm.
+- Rust stable (install using [rustup.rs](https://rustup.rs/)).
+- The platform-specific Tauri prerequisites described in the [Tauri v2 prerequisites guide](https://v2.tauri.app/start/prerequisites/).
+
+Install dependencies and launch the desktop development app:
+
+```bash
+npm install
+npm run tauri:dev
+```
+
+Build a native package on the corresponding operating system:
+
+```bash
+# Windows: NSIS setup executable
+npm run tauri:build -- --bundles nsis
+
+# macOS: DMG
+npm run tauri:build -- --bundles dmg
+
+# Linux: AppImage
+npm run tauri:build -- --bundles appimage
+```
+
+Desktop bundles are generated under `src-tauri/target/release/bundle/`.
+
+The included `.github/workflows/desktop-release.yml` builds the Windows, macOS and Linux packages on native GitHub-hosted runners when you push a version tag. For example:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The workflow creates a **draft GitHub Release** containing the generated installers. Review and publish that draft when the builds are ready.
+
+**Platform notes:**
+
+- Build each desktop target on its matching operating system; native signing and packaging are platform-specific.
+- The macOS DMG is not code-signed or notarized by default. For public distribution without Gatekeeper warnings, configure an Apple Developer ID certificate and notarization secrets in GitHub Actions.
+- Windows installers are not Authenticode-signed by default, so Windows SmartScreen may show an unknown-publisher warning. Configure a code-signing certificate for a polished public release.
+- Linux AppImage builds require the Linux system dependencies listed in the Tauri prerequisites guide.
+- The web version remains a normal browser application; desktop packaging does not require separate React code.
+
 ## Installation & Running Locally
 
 ### Prerequisites
@@ -105,6 +167,22 @@ installed on your machine.
 node -v
 npm -v
 ```
+
+### If `npm install` fails
+
+If the initial `npm install` fails or produces dependency-related errors, run the following command to reset the dependency lists in `package.json` and reinstall the project's frontend packages:
+
+```bash
+npm pkg delete dependencies devDependencies && npm install react react-dom three jszip lucide-react motion && npm install -D vite @vitejs/plugin-react tailwindcss @tailwindcss/vite typescript @types/react @types/react-dom @types/three @types/node
+```
+
+**Important:** This command removes the existing `dependencies` and `devDependencies` entries from `package.json` before reinstalling the packages listed above. It is a dependency reset, not a harmless retry. After running it, restore the Tauri CLI required for desktop builds:
+
+```bash
+npm install -D @tauri-apps/cli
+```
+
+Then retry the relevant setup or build command. If the error persists, review the full npm error output rather than repeatedly resetting dependencies.
 
 ### Step-by-Step Setup
 
